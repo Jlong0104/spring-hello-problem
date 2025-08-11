@@ -416,11 +416,20 @@ name: Master CI Pipeline
       - "**/*.md"
 ```
 
+## 验证非 gitflow 相关分支的 CI 流程
+
 **验证通过，在 main 分支推送代码后，不触发任何的 CI**
 
 图示：通过 main 分支 push，对应的 commit 为 9e2a48
-![alt text](image.png)
+![alt text](./images/image-20.png)
 
 图示：没有对应的 commit 触发 CI
-![alt text](image-1.png)
+![alt text](./images/image-21.png)
 
+## 验证 feature 分支的 CI 流程
+
+图示：通过 feature/ci-test 分支 push，对应的 commit 为 4eb7e05
+![alt text](./images/image-22.png)
+
+图示：feature/ci-test 分支触发了 CI
+![alt text](./images/image-23.png)

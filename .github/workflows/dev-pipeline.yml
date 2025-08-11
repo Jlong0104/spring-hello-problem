@@ -136,6 +136,8 @@ jobs:
           push: false
           load: true
           tags: ${{ env.IMAGE_TAG }}
+      - name: Ensure image exists
+        run: docker image inspect "${{ env.IMAGE_TAG }}" >/dev/null
       - name: Trivy scan → SARIF
         uses: aquasecurity/trivy-action@0.20.0
         with:
@@ -145,10 +147,23 @@ jobs:
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
-          exit-code: '1'
+          exit-code: '0'
+          hide-progress: false
+        continue-on-error: true
       - uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-image.sarif
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif
+      - name: Trivy gate (fail on HIGH/CRITICAL)
+        run: |
+          trivy image --quiet \
+            --severity CRITICAL,HIGH \
+            --ignore-unfixed \
+            --exit-code 1 \
+            "${{ env.IMAGE_TAG }}"
 
   sbom:
     name: SBOM (Syft)
