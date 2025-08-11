@@ -379,3 +379,12 @@ curl -G 'http://127.0.0.1:19090/api/v1/query' --data-urlencode 'query=sum by (po
 
 图示：这是 master 分支的 CI 流水线触发情况
 ![alt text](./images/image-18.png)
+
+本地在测试的过程中，使用 yamllint 工具检测 yaml 格式是否正确：
+
+```
+yamllint .github/workflows/dev-pipeline.yml
+yamllint .github/workflows/pipeline.yml
+```
+
+![alt text](./images/image-19.png)

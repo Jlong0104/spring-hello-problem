@@ -1,6 +1,7 @@
+---
 name: Master CI Pipeline
 
-on:
+"on":
   pull_request:
   push:
     branches:
@@ -39,11 +40,14 @@ jobs:
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
+        env:
+          IMAGE_REPO: ${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          tags: ${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
 
   helm-validation:
     runs-on: ubuntu-latest
@@ -61,7 +65,8 @@ jobs:
           sudo mv ./kind /usr/local/bin/kind
 
           # 下载并安装 Kubectl
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          install_url=https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s $install_url)"
           chmod +x ./kubectl
           sudo mv ./kubectl /usr/local/bin/kubectl
 
@@ -86,10 +91,13 @@ jobs:
         run: helm lint ${{ env.CHART_PATH }}
 
       - name: Helm dry-run
+        env:
+          IMAGE_REPO: ${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          IMAGE_TAG="${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
           helm upgrade --install spring-hello-problem ${{ env.CHART_PATH }} \
           --dry-run \
           --debug \
-          --set image.tag=${{ github.sha }} \
+          --set-string image.repository="$IMAGE_REPO" \
+          --set-string image.tag="$IMAGE_TAG" \
           --namespace spring-hello-problem
