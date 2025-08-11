@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "spring-hello-chart.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "spring-hello-chart.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "spring-hello-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "spring-hello-chart.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if .Values.lifecycle.preStop.enabled }}
+      terminationGracePeriodSeconds: {{ .Values.lifecycle.preStop.gracePeriodSeconds | default 60 }}
+      {{- end }}
+      automountServiceAccountToken: {{ default false .Values.pod.automountServiceAccountToken }}
+      serviceAccountName: {{ include "spring-hello-chart.serviceAccountName" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port | default 8080 }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+
+          {{- if .Values.probes.enabled }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.probes.startupProbe.path }}
+              port: {{ .Values.probes.startupProbe.port }}
+            initialDelaySeconds: {{ .Values.probes.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.startupProbe.periodSeconds }}
+            failureThreshold: {{ .Values.probes.startupProbe.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness.path }}
+              port: {{ .Values.probes.liveness.port }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readiness.path }}
+              port: {{ .Values.probes.readiness.port }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+          {{- end }}
+          {{- if .Values.lifecycle.preStop.enabled }}
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+          {{- (.Values.lifecycle.preStop.script | default "") | nindent 26 }}
+          {{- end }}
+          {{- if .Values.env }}
+          env:
+          {{- range $k, $v := .Values.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+          {{- end }}
+          {{- end }}
+
+          volumeMounts:
+            - name: java-dump-volume
+              mountPath: /var/log/java-dump
+
+        {{- if .Values.jmxExporter.enabled }}
+        - name: jmx-exporter
+          image: "{{ .Values.jmxExporter.image.repository }}:{{ .Values.jmxExporter.image.tag }}"
+          imagePullPolicy: {{ .Values.jmxExporter.image.pullPolicy }}
+          env:
+            - name: JMX_SERVICE_URL
+              value: "service:jmx:rmi:///jndi/rmi://localhost:5555/jmxrmi"
+            - name: JMX_EXPORTER_PORT
+              value: "{{ .Values.jmxExporter.port }}"
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.jmxExporter.port }}
+              protocol: TCP
+          volumeMounts:
+            - name: jmx-config-volume
+              mountPath: /config
+          resources:
+            {{- toYaml .Values.jmxExporter.resources | nindent 16 }}
+        {{- end }}
+
+      volumes:
+        - name: java-dump-volume
+          hostPath:
+            path: /var/log/java-dump
+            type: DirectoryOrCreate
+        {{- if .Values.jmxExporter.enabled }}        
+        - name: jmx-config-volume
+          configMap:
+            name: {{ include "spring-hello-chart.fullname" . }}-jmx-config
+        {{- end }}

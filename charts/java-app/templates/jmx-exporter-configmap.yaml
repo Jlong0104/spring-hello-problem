@@ -1,0 +1,11 @@
+{{- if .Values.jmxExporter.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "spring-hello-chart.fullname" . }}-jmx-config
+  labels:
+    {{- include "spring-hello-chart.labels" . | nindent 8 }}
+data:
+  config.yaml: |
+    {{- toYaml .Values.jmxExporter.config | nindent 8 }}
+{{- end }}

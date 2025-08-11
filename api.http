@@ -1,0 +1,9 @@
+### Test the /hello endpoint
+GET http://localhost:8080/hello
+Accept: text/plain
+
+###
+
+### Health check (if Spring Boot Actuator is enabled)
+GET http://localhost:8080/actuator/health
+Accept: application/json

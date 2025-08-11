@@ -1,0 +1,134 @@
+replicaCount: 3
+
+image:
+  repository: 192.168.45.143:31791/jianglong/spring-hello-problem
+  tag: 1.2.0
+  pullPolicy: IfNotPresent
+
+env:
+  JAVA_OPTS: "-Dcom.sun.management.jmxremote.port=5555 -Dcom.sun.management.jmxremote.rmi.port=5555 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=127.0.0.1"
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
+  MANAGEMENT_ENDPOINT_PROMETHEUS_ENABLED: "true"
+  MANAGEMENT_ENDPOINT_METRICS_ENABLED: "true"
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: http
+
+  metrics:
+    enabled: true
+    ports:
+      - name: jmx-metrics
+        port: 5556
+        targetPort: 5556
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "5"
+  hosts:
+    - host: "platform.k8stest.com"
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+# Probe configuration
+probes:
+  enabled: true
+  startupProbe:
+    path: /actuator/health
+    port: http
+    periodSeconds: 5
+    failureThreshold: 30
+  liveness:
+    path: /actuator/health
+    port: http
+    periodSeconds: 30
+    timeoutSeconds: 3
+    failureThreshold: 3
+  readiness:
+    path: /actuator/health
+    port: http
+    periodSeconds: 5
+    timeoutSeconds: 3
+    initialDelaySeconds: 5
+
+lifecycle:
+  preStop:
+    enabled: true
+    gracePeriodSeconds: 30
+    script: |
+      set -eu
+      ts=$(date +%s)
+      PID="$(jcmd -l | awk 'NR==1{print $1}')" || exit 0
+      mkdir -p /var/log/java-dump
+      jstack -l "$PID" > /var/log/java-dump/$(hostname)-$ts.log 2>&1 || true
+      sleep 5
+
+jmxExporter:
+  enabled: true
+
+  crdInstall: true
+
+  image:
+    repository: 192.168.45.143:31791/bitnami/jmx-exporter
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+  port: 9404
+
+  config:
+    jmxUrl: service:jmx:rmi:///jndi/rmi://localhost:5555/jmxrmi
+    lowercaseOutputName: true
+    lowercaseOutputLabelNames: true
+    rules:
+
+serviceMonitor:
+  additionalLabels: {}
+  interval: 30s
+  scrapeTimeout: 10s
+  endpoints:
+    - port: jmx-metrics
+      path: /metrics
+    - port: http
+      path: /actuator/prometheus
+  metricRelabelings: []
+  relabelings: []
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 70
+
+serviceAccount:
+  create: false
+  automount: false
+  name: ""
+  annotations: {}
+
+rbac:
+  create: false
+
+pod:
+  automountServiceAccountToken: false
