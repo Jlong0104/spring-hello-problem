@@ -1,9 +1,12 @@
-name: CI/CD Pipeline
+name: Master CI Pipeline
 
 on:
+  pull_request:
   push:
     branches:
-      - "main"
+      - 'master'
+    paths-ignore:
+      - "**/*.md"
 
 env:
   DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
