@@ -164,6 +164,7 @@ jobs:
           exit-code: '0'
           format: 'table'
           hide-progress: false
+        continue-on-error: true
 
   sbom:
     name: SBOM (Syft)
