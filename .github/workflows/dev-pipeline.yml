@@ -150,9 +150,6 @@ jobs:
           exit-code: '0'
           hide-progress: false
         continue-on-error: true
-      - uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-image.sarif
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
         with:
