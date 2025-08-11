@@ -387,4 +387,40 @@ yamllint .github/workflows/dev-pipeline.yml
 yamllint .github/workflows/pipeline.yml
 ```
 
+图示：yamllint结果
 ![alt text](./images/image-19.png)
+
+我在 CI 文件中配置了分支限制，因为需要确保每个分支都只执行对应的 pipeline。
+
+```
+name: Dev CI Pipeline
+
+"on":
+  pull_request:
+  push:
+    branches:
+      - 'feature/**'
+    paths-ignore:
+      - "**/*.md"
+```
+
+```
+name: Master CI Pipeline
+
+"on":
+  pull_request:
+  push:
+    branches:
+      - 'master'
+    paths-ignore:
+      - "**/*.md"
+```
+
+**验证通过，在 main 分支推送代码后，不触发任何的 CI**
+
+图示：通过 main 分支 push，对应的 commit 为 9e2a48
+![alt text](image.png)
+
+图示：没有对应的 commit 触发 CI
+![alt text](image-1.png)
+
