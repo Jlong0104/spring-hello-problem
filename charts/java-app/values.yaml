@@ -82,7 +82,7 @@ jmxExporter:
   crdInstall: true
 
   image:
-    repository: 192.168.45.143:31791/bitnami/jmx-exporter
+    repository: bitnami/jmx-exporter
     tag: latest
     pullPolicy: IfNotPresent
 
