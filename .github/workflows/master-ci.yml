@@ -20,7 +20,7 @@ jobs:
       release_name: 'spring-hello-problem'
       namespace:    'spring-hello-problem'
       helm_version: '3.14.4'
-      use_kind:     false          # 只是 dry-run 渲染不需要集群
+      use_kind:     true
       push_image:   true
       dockerfile:   './Dockerfile'
       context:      '.'

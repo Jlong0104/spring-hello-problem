@@ -1,22 +1,45 @@
 # .github/workflows/standard-master-ci.yml
+---
 name: Standard Master CI
 
-on:
+"on":
   workflow_call:
     inputs:
-      image_name:         { type: string,  default: 'spring-hello-problem' }
-      image_registry:     { type: string,  default: 'docker.io' }   # 也可填私有仓域名
-      chart_path:         { type: string,  default: 'charts/java-app' }
-      release_name:       { type: string,  default: 'spring-hello-problem' }
-      namespace:          { type: string,  default: 'spring-hello-problem' }
-      helm_version:       { type: string,  default: '3.14.4' }
-      use_kind:           { type: boolean, default: false }          # 仅模板渲染可不用集群
-      push_image:         { type: boolean, default: true }           # 没有凭据时会自动降级
-      dockerfile:         { type: string,  default: './Dockerfile' }
-      context:            { type: string,  default: '.' }
+      image_name:
+        type: string
+        default: 'spring-hello-problem'
+      image_registry:
+        type: string
+        default: 'docker.io'
+      chart_path:
+        type: string
+        default: 'charts/java-app'
+      release_name:
+        type: string
+        default: 'spring-hello-problem'
+      namespace:
+        type: string
+        default: 'spring-hello-problem'
+      helm_version:
+        type: string
+        default: '3.14.4'
+      use_kind:
+        type: boolean
+        default: false
+      push_image:
+        type: boolean
+        default: true
+      dockerfile:
+        type: string
+        default: './Dockerfile'
+      context:
+        type: string
+        default: '.'
     secrets:
-      docker_username:    { required: false }
-      docker_token:       { required: false }
+      docker_username:
+        required: false
+      docker_token:
+        required: false
 
 permissions:
   contents: read
@@ -31,52 +54,33 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    outputs:
-      image_repo: ${{ steps.meta.outputs.image_repo }}
-      image_ref:  ${{ steps.meta.outputs.image_ref }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # 可选：缓存 Maven（与原流程保持一致；若没用到也不影响）
-      - name: Cache Maven dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-maven-
+      - uses: actions/checkout@v4
 
       - name: Prepare image meta
         id: meta
-        shell: bash
         run: |
-          # 组合仓库名：<registry>/<username>/<image_name>
-          if [[ -n "${{ secrets.docker_username }}" ]]; then
-            REPO="${{ inputs.image_registry }}/${{ secrets.docker_username }}/${{ inputs.image_name }}"
-          else
-            # 无凭据也生成一个占位 repo 名，后续仅 build 不 push
-            REPO="${{ inputs.image_registry }}/anonymous/${{ inputs.image_name }}"
-          fi
-          echo "image_repo=$REPO"    >> "$GITHUB_OUTPUT"
-          echo "image_ref=$REPO:${{ env.IMAGE_TAG }}" >> "$GITHUB_OUTPUT"
+          REPO="${{ inputs.image_registry }}/${{ secrets.docker_username }}/${{ inputs.image_name }}"
+          echo "image_repo=$REPO" >> $GITHUB_OUTPUT
+          echo "image_ref=$REPO:${{ github.sha }}" >> $GITHUB_OUTPUT
 
       - name: Setup Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Docker login (if credentials provided)
-        if: ${{ inputs.push_image && secrets.docker_username && secrets.docker_token }}
+      - name: Docker login
+        if: ${{ inputs.push_image }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.docker_username }}
           password: ${{ secrets.docker_token }}
 
-      - name: Build and (optionally) Push
+      - name: Build and (optionally) push
         uses: docker/build-push-action@v5
         with:
           context: ${{ inputs.context }}
-          file:    ${{ inputs.dockerfile }}
-          push:    ${{ inputs.push_image && secrets.docker_username && secrets.docker_token }}
-          tags:    ${{ steps.meta.outputs.image_ref }}
+          file: ${{ inputs.dockerfile }}
+          push: ${{ inputs.push_image }}
+          tags: ${{ steps.meta.outputs.image_ref }}
 
   helm-validation:
     needs: build-and-push
@@ -85,17 +89,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 可选：创建 Kind 集群（仅当需要和 API Server 交互时）
       - name: Install kind & kubectl
         if: ${{ inputs.use_kind }}
         shell: bash
         run: |
-          curl -Lo kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
-          chmod +x kind && sudo mv kind /usr/local/bin/kind
-          KVER=$(curl -sL https://dl.k8s.io/release/stable.txt)
-          curl -LO "https://dl.k8s.io/release/${KVER}/bin/linux/amd64/kubectl"
-          chmod +x kubectl && sudo mv kubectl /usr/local/bin/kubectl
-          kind create cluster
+          # 下载并安装 Kind
+          curl -Lo kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+
+          # 下载并安装 Kubectl
+          install_url=https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s $install_url)"
+          chmod +x ./kubectl
+          sudo mv ./kubectl /usr/local/bin/kubectl
+      
+      - name: Create Kind cluster
+        run: kind create cluster
 
       - name: Setup Helm
         uses: azure/setup-helm@v3
@@ -105,11 +115,10 @@ jobs:
       - name: Helm lint
         run: helm lint ${{ inputs.chart_path }}
 
-      # 与你现有流程保持一致：dry-run 渲染并验证 values 替换
       - name: Helm dry-run (render & verify)
         env:
           IMAGE_REPO: ${{ needs.build-and-push.outputs.image_repo }}
-          IMAGE_TAG:  ${{ env.IMAGE_TAG }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
         run: |
           helm upgrade --install ${{ inputs.release_name }} ${{ inputs.chart_path }} \
             --dry-run --debug \
