@@ -1,5 +1,5 @@
 # .github/workflows/master-ci.yml
-name: Master CI Pipeline
+name: Master CI Pipeline (Inherit standard CI template)
 
 on:
   pull_request:

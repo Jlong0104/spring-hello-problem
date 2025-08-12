@@ -65,8 +65,8 @@ jobs:
           sudo mv ./kind /usr/local/bin/kind
 
           # 下载并安装 Kubectl
-          install_url=https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s $install_url)"
+          KVER="$(curl -fsSL https://dl.k8s.io/release/stable.txt)"
+          curl -fsSLo kubectl "https://dl.k8s.io/release/${KVER}/bin/linux/amd64/kubectl"
           chmod +x ./kubectl
           sudo mv ./kubectl /usr/local/bin/kubectl
 
