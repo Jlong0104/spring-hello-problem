@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   call-standard:
-    uses: jianglong/spring-hello-problem/.github/workflows/standard-master-ci.yml@master
+    uses: Jlong0104/spring-hello-problem/.github/workflows/standard-master-ci.yml@master
     with:
       image_name:   'spring-hello-problem'
       image_registry: 'docker.io'
