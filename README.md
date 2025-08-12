@@ -225,6 +225,17 @@ securityContext:
           volumeMounts:
             - name: java-dump-volume
               mountPath: /var/log/java-dump
+
+      volumes:
+        - name: java-dump-volume
+          hostPath:
+            path: /var/log/java-dump
+            type: DirectoryOrCreate
+        {{- if .Values.jmxExporter.enabled }}        
+        - name: jmx-config-volume
+          configMap:
+            name: {{ include "spring-hello-chart.fullname" . }}-jmx-config
+        {{- end }}
 ```
 
 ## HPA
