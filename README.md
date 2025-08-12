@@ -188,6 +188,18 @@ automountServiceAccountToken: {{ default false .Values.pod.automountServiceAccou
 serviceAccountName: {{ include "spring-hello-chart.serviceAccountName" . }}
 ```
 
+在生产环境需要在 Deployment 中加上这几个配置，来保证权限最小化，但是因为加上后 preStop 就没法转储日志到当前 node 的磁盘上，想要访问则需要额外配置该目录的所有权归启动用户所有，所以这次测试中暂时不加限制。
+
+```YAML
+securityContext:
+  runAsNonRoot: true
+  runAsUser: userID
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - "ALL"
+```
+
 ### 日志转储
 
 现在jstack转储是用本地卷挂载，云原生需要使用stdout的方式收集，统一上报到日志平台，这样可以更好地进行日志分析和处理。
