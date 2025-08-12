@@ -391,7 +391,7 @@ curl -G 'http://127.0.0.1:19090/api/v1/query' --data-urlencode 'query=sum by (po
 
 - Probes & resource limits: DONE
 
-这里使用了 `/actuator/health` 作为探针接口，配置了 liveness、readiness 和 startup probes。资源限制设置为 CPU 100m，内存 128Mi 的请求，CPU 500m，内存 512Mi 的限制。
+这里使用了 `/actuator/health` 作为探针接口，配置了 liveness、readiness 和 startup probes。资源限制设置为 CPU 100m，内存 128Mi 的请求，CPU 100m，内存 128Mi 的限制。
 
 - Pre-restart diagnostics: DONE
 
