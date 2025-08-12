@@ -414,7 +414,7 @@ curl -G 'http://127.0.0.1:19090/api/v1/query' --data-urlencode 'query=sum by (po
 - master：包括了生产所需要的准备，比如镜像构建、验证 helm 有效性等等
 - feature/*：包括了开发所需要的准备，比如代码扫描等等
 
-图示：这是 master 分支的 CI 流水线触发情况
+图示：这是 master 分支的 CI 流水线触发情况，包含了题目要求的 image push 到 dockerhub，并进行 helm 验证等。
 ![alt text](./images/image-18.png)
 
 本地在测试的过程中，使用 yamllint 工具检测 yaml 格式是否正确：
