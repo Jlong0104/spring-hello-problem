@@ -68,6 +68,21 @@ jobs:
           REG="${{ inputs.image_registry }}"
           NAME="${{ inputs.image_name }}"
 
+          if [ -n "$USER" ]; then
+            REPO="$REG/$USER/$NAME"
+          else
+            if [ "$PUSH" = "true" ]; then
+              if [ "$REG" = "docker.io" ]; then
+                echo "::error::pushing to docker.io requires secrets.docker_username"
+                exit 1
+              else
+                REPO="$REG/${{ github.repository_owner }}/$NAME"
+              fi
+            else
+              REPO="local/$NAME"
+            fi
+          fi
+
           echo "image_repo=$REPO" >> "$GITHUB_OUTPUT"
           echo "image_ref=$REPO:${{ github.sha }}" >> "$GITHUB_OUTPUT"
 

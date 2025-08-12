@@ -166,34 +166,34 @@ jobs:
           hide-progress: false
         continue-on-error: true
 
-sbom:
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@v4
-    - uses: docker/setup-buildx-action@v3
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
 
-    - name: Build image (load locally)
-      uses: docker/build-push-action@v5
-      env:
-        IMAGE_TAG: local/spring-hello-problem:${{ github.sha }}
-      with:
-        context: .
-        file: ./Dockerfile
-        push: false
-        load: true
-        tags: ${{ env.IMAGE_TAG }}
+      - name: Build image (load locally)
+        uses: docker/build-push-action@v5
+        env:
+          IMAGE_TAG: local/spring-hello-problem:${{ github.sha }}
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_TAG }}
 
-    - name: Install Syft
-      uses: anchore/sbom-action/download-syft@v0.17.7
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@v0.17.7
 
-    - name: Generate SBOM (SPDX JSON)
-      run: |
-        syft packages "local/spring-hello-problem:${{ github.sha }}" -o spdx-json > sbom.spdx.json
+      - name: Generate SBOM (SPDX JSON)
+        run: |
+          syft packages "local/spring-hello-problem:${{ github.sha }}" -o spdx-json > sbom.spdx.json
 
-    - uses: actions/upload-artifact@v4
-      with:
-        name: sbom-spdx
-        path: sbom.spdx.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom-spdx
+          path: sbom.spdx.json
 
 
   helm-lint:
