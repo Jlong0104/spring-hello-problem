@@ -67,7 +67,7 @@ jobs:
       - name: Build and (optionally) push
         uses: docker/build-push-action@v5
         env:
-          IMAGE_REPO: ${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}
+          IMAGE_REPO: ${{ secrets.docker_username }}/${{ inputs.image_name }}
           IMAGE_TAG: ${{ github.sha }}
         with:
           context: ${{ inputs.context }}
