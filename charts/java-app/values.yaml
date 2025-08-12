@@ -1,9 +1,9 @@
 replicaCount: 3
 
 image:
-  repository: 192.168.45.143:31791/jianglong/spring-hello-problem
-  tag: 1.2.0
-  pullPolicy: IfNotPresent
+  repository: jlong0104/spring-hello-problem
+  tag: 1.0.0
+  pullPolicy: Always
 
 env:
   JAVA_OPTS: "-Dcom.sun.management.jmxremote.port=5555 -Dcom.sun.management.jmxremote.rmi.port=5555 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=127.0.0.1"

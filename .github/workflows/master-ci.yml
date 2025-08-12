@@ -1,0 +1,29 @@
+# .github/workflows/master-ci.yml
+name: Master CI Pipeline
+
+on:
+  pull_request:
+  push:
+    branches: ['master']
+    paths-ignore: ['**/*.md']
+
+permissions:
+  contents: read
+
+jobs:
+  call-standard:
+    uses: jianglong/spring-hello-problem/.github/workflows/standard-master-ci.yml@master
+    with:
+      image_name:   'spring-hello-problem'
+      image_registry: 'docker.io'
+      chart_path:   'charts/java-app'
+      release_name: 'spring-hello-problem'
+      namespace:    'spring-hello-problem'
+      helm_version: '3.14.4'
+      use_kind:     false          # 只是 dry-run 渲染不需要集群
+      push_image:   true
+      dockerfile:   './Dockerfile'
+      context:      '.'
+    secrets:
+      docker_username: ${{ secrets.DOCKER_HUB_USERNAME }}
+      docker_token:   ${{ secrets.DOCKER_HUB_TOKEN }}
