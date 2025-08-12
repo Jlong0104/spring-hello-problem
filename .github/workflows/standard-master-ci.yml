@@ -48,43 +48,11 @@ concurrency:
   group: std-master-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  IMAGE_TAG: ${{ github.sha }}
-
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    outputs:
-      image_repo: ${{ steps.meta.outputs.image_repo }}
-      image_ref: ${{ steps.meta.outputs.image_ref }}
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Prepare image meta
-        id: meta
-        run: |
-          USER="${{ secrets.docker_username }}"
-          REG="${{ inputs.image_registry }}"
-          NAME="${{ inputs.image_name }}"
-
-          if [ -n "$USER" ]; then
-            REPO="$REG/$USER/$NAME"
-          else
-            if [ "$PUSH" = "true" ]; then
-              if [ "$REG" = "docker.io" ]; then
-                echo "::error::pushing to docker.io requires secrets.docker_username"
-                exit 1
-              else
-                REPO="$REG/${{ github.repository_owner }}/$NAME"
-              fi
-            else
-              REPO="local/$NAME"
-            fi
-          fi
-
-          echo "image_repo=$REPO" >> "$GITHUB_OUTPUT"
-          echo "image_ref=$REPO:${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
       - name: Setup Buildx
         uses: docker/setup-buildx-action@v3
@@ -98,11 +66,14 @@ jobs:
 
       - name: Build and (optionally) push
         uses: docker/build-push-action@v5
+        env:
+          IMAGE_REPO: ${{ env.DOCKER_HUB_USERNAME }}/${{ env.IMAGE_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
         with:
           context: ${{ inputs.context }}
           file: ${{ inputs.dockerfile }}
           push: ${{ inputs.push_image }}
-          tags: ${{ steps.meta.outputs.image_ref }}
+          tags: ${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
 
   helm-validation:
     needs: build-and-push
@@ -140,8 +111,8 @@ jobs:
 
       - name: Helm dry-run (render & verify)
         env:
-          IMAGE_REPO: ${{ needs.build-and-push.outputs.image_repo }}
-          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          IMAGE_REPO: ${{ secrets.docker_username }}/${{ inputs.image_name }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
           helm upgrade --install ${{ inputs.release_name }} ${{ inputs.chart_path }} \
             --dry-run --debug \
